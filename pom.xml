@@ -106,7 +106,7 @@
 
 	<properties>
 		<package-name>com.mycompany.imagej</package-name>                   <!-- FIXME: Your project package prefix here -->
-		<main-class>com.mycompany.imagej.GaussFiltering</main-class>        <!-- FIXME: Your project main class here, or delete for none -->
+		<main-class>com.mycompany.imagej.DropletsStress</main-class>        <!-- FIXME: Your project main class here, or delete for none -->
 		<license.licenseName>cc0</license.licenseName>                      <!-- FIXME: Your license-maven-plugin license code here -->
 		<license.copyrightOwners>My Company, Inc.</license.copyrightOwners> <!-- FIXME: Your organization legal entity name here -->
 	</properties>
@@ -134,6 +134,11 @@
 			<artifactId>3D_Viewer</artifactId>
 		</dependency>
 		
+		<dependency>
+			<groupId>sc.fiji</groupId>
+			<artifactId>TrackMate</artifactId>
+		</dependency>
+		
 		<!-- Java 3D dependencies -->
 		<dependency>
 			<groupId>org.scijava</groupId>
@@ -148,5 +153,38 @@
 			<artifactId>vecmath</artifactId>
 		</dependency>
 		
+		<dependency>
+			<groupId>org.locationtech.jts</groupId>
+			<artifactId>jts-core</artifactId>
+			<version>1.19.0</version>
+		</dependency>
+
 	</dependencies>
+	
+	<build>
+	    <plugins>
+	        <plugin>
+	            <groupId>org.apache.maven.plugins</groupId>
+	            <artifactId>maven-shade-plugin</artifactId>
+	            <executions>
+	                <execution>
+	                    <phase>package</phase>
+	                    <goals>
+	                        <goal>shade</goal>
+	                    </goals>
+	                    <configuration>
+	                        <createDependencyReducedPom>false</createDependencyReducedPom>
+	                        <artifactSet>
+	                            <includes>
+	                                <include>org.locationtech.jts:jts-core</include>
+	                            </includes>
+	                        </artifactSet>
+	                    </configuration>
+	                </execution>
+	            </executions>
+	        </plugin>
+	    </plugins>
+	</build>
+
+
 </project>
