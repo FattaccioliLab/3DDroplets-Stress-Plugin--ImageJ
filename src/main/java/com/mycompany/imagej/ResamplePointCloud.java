@@ -1,9 +1,6 @@
 package com.mycompany.imagej;
 
 import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
-import org.locationtech.jts.geom.Coordinate;
-import org.locationtech.jts.geom.GeometryFactory;
-import org.locationtech.jts.geom.Point;
 import org.scijava.vecmath.Point3f;
 
 import java.util.ArrayList;
@@ -18,23 +15,10 @@ public class ResamplePointCloud {
             convertedPoints.add(new double[] {point.x, point.y, point.z});
         }
 
-        List<Coordinate> coordinateList = new ArrayList<>();
-        for (double[] point : convertedPoints) {
-            coordinateList.add(new Coordinate(point[0], point[1], point[2]));
-        }
-
-        // Convertir les coordonnées en JTS en points JTS
-        GeometryFactory geometryFactory = new GeometryFactory();
-        List<Point> jtsPoints = new ArrayList<>();
-        for (Coordinate coordinate : coordinateList) {
-            jtsPoints.add(geometryFactory.createPoint(coordinate));
-        }
-
         // Convertir les points JTS en Apache Commons Math Vectors pour l'interpolation
         List<Vector3D> vectors = new ArrayList<>();
-        for (Point point : jtsPoints) {
-            Coordinate coordinate = point.getCoordinate();
-            vectors.add(new Vector3D(coordinate.getX(), coordinate.getY(), coordinate.getZ()));
+        for (Point3f point : points) {
+            vectors.add(new Vector3D(point.x, point.y, point.z));
         }
 
         // Estimate point number according to passed sampling length
@@ -84,6 +68,7 @@ public class ResamplePointCloud {
         return points;
     }
 
+    
     private static double interpolateCoordinate(List<Vector3D> vectors, List<double[]> points, Vector3D sampledPoint, int index) {
         double weightSum = 0;
         double weightedSum = 0;

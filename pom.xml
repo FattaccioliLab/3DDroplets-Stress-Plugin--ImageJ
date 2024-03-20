@@ -153,38 +153,6 @@
 			<artifactId>vecmath</artifactId>
 		</dependency>
 		
-		<dependency>
-			<groupId>org.locationtech.jts</groupId>
-			<artifactId>jts-core</artifactId>
-			<version>1.19.0</version>
-		</dependency>
-
 	</dependencies>
-	
-	<build>
-	    <plugins>
-	        <plugin>
-	            <groupId>org.apache.maven.plugins</groupId>
-	            <artifactId>maven-shade-plugin</artifactId>
-	            <executions>
-	                <execution>
-	                    <phase>package</phase>
-	                    <goals>
-	                        <goal>shade</goal>
-	                    </goals>
-	                    <configuration>
-	                        <createDependencyReducedPom>false</createDependencyReducedPom>
-	                        <artifactSet>
-	                            <includes>
-	                                <include>org.locationtech.jts:jts-core</include>
-	                            </includes>
-	                        </artifactSet>
-	                    </configuration>
-	                </execution>
-	            </executions>
-	        </plugin>
-	    </plugins>
-	</build>
-
 
 </project>
