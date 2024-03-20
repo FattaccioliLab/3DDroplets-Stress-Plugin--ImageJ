@@ -1,6 +1,5 @@
 package com.mycompany.imagej;
 
-import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
 import org.scijava.vecmath.Point3f;
 
 import java.util.ArrayList;
@@ -10,49 +9,34 @@ public class ResamplePointCloud {
 
     public static List<Point3f> resamplePointCloud(List<Point3f> points, double samplingLength) {
 
-        List<double[]> convertedPoints = new ArrayList<double[]>();
-        for (Point3f point : points) {
-            convertedPoints.add(new double[] {point.x, point.y, point.z});
-        }
-
-        // Convertir les points JTS en Apache Commons Math Vectors pour l'interpolation
-        List<Vector3D> vectors = new ArrayList<>();
-        for (Point3f point : points) {
-            vectors.add(new Vector3D(point.x, point.y, point.z));
-        }
-
         // Estimate point number according to passed sampling length
         double meanRadius = 0;
-        for (Vector3D vector : vectors) {
-            meanRadius += vector.getNorm();
+        for (Point3f point : points) {
+            meanRadius += Math.sqrt(point.x * point.x + point.y * point.y + point.z * point.z);
         }
-        meanRadius /= vectors.size();
+        meanRadius = meanRadius / points.size();
         double surfaceArea = meanRadius * meanRadius * 4 * Math.PI;
         int n = (int) (surfaceArea / (samplingLength * samplingLength));
 
         // Sample points on unit sphere according to Fibonacci scheme
-        List<Vector3D> sampledPoints = fibonacciSampling(n);
+        List<Point3f> sampledPoints = fibonacciSampling2(n);
 
         // Interpolate cartesian coordinates
-        List<double[]> resampledPoints = new ArrayList<>();
-        for (Vector3D sampledPoint : sampledPoints) {
-            double[] interpolatedPoint = new double[3];
-            for (int i = 0; i < 3; i++) {
-                interpolatedPoint[i] = interpolateCoordinate(vectors, convertedPoints, sampledPoint, i);
-            }
-            resampledPoints.add(interpolatedPoint);
+        List<Point3f> resampledPoints = new ArrayList<>();
+        double x, y, z;
+        for (Point3f sampledPoint : sampledPoints) {
+            x = interpolateCoordinate(points, sampledPoint, 0);
+            y = interpolateCoordinate(points, sampledPoint, 1);
+            z = interpolateCoordinate(points, sampledPoint, 2);
+            resampledPoints.add(new Point3f((float)x, (float)y, (float)z));
         }
 
-        List<Point3f> convertedResampledPoints = new ArrayList<Point3f>();
-        for (double[] point : resampledPoints) {
-            convertedResampledPoints.add(new Point3f((float)point[0], (float)point[1], (float)point[2]));
-        }
+        return resampledPoints;
 
-        return convertedResampledPoints;
     }
 
-    private static List<Vector3D> fibonacciSampling(int numberOfPoints) {
-        List<Vector3D> points = new ArrayList<>();
+    private static List<Point3f> fibonacciSampling2(int numberOfPoints) {
+        List<Point3f> points = new ArrayList<>();
         double goldenRatio = (1.0 + Math.sqrt(5.0)) / 2.0;
 
         for (int i = 0; i < numberOfPoints; i++) {
@@ -62,22 +46,26 @@ public class ResamplePointCloud {
             double y = Math.sin(theta) * Math.sin(phi);
             double z = Math.cos(phi);
 
-            points.add(new Vector3D(x, y, z));
+            points.add(new Point3f((float)x, (float)y, (float)z));
         }
 
         return points;
     }
 
-    
-    private static double interpolateCoordinate(List<Vector3D> vectors, List<double[]> points, Vector3D sampledPoint, int index) {
+    private static double interpolateCoordinate(List<Point3f> points, Point3f sampledPoint, int axe) {
         double weightSum = 0;
         double weightedSum = 0;
-        for (int i = 0; i < vectors.size(); i++) {
-            Vector3D vector = vectors.get(i);
-            double dist = vector.distance(sampledPoint);
+        for (int i = 0; i < points.size(); i++) {
+            Point3f point = points.get(i);
+            double dist = point.distance(sampledPoint);
             double weight = 1 / dist;
             weightSum += weight;
-            weightedSum += points.get(i)[index] * weight;
+            if (axe == 0)
+                weightedSum += points.get(i).x * weight;
+            else if (axe == 1)
+                weightedSum += points.get(i).y * weight;
+            else if (axe == 2)
+                weightedSum += points.get(i).z * weight;
         }
         return weightedSum / weightSum;
     }
