@@ -5,8 +5,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.swing.SwingUtilities;
-
 import org.scijava.command.Command;
 import org.scijava.plugin.Parameter;
 import org.scijava.plugin.Plugin;
@@ -15,7 +13,6 @@ import org.scijava.vecmath.Color3f;
 import org.scijava.vecmath.Point3f;
 
 import customnode.CustomPointMesh;
-import fiji.plugin.trackmate.detection.util.MedianFilter2D;
 import ij.ImagePlus;
 import ij3d.Image3DUniverse;
 import net.imagej.Dataset;
@@ -31,7 +28,8 @@ import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.type.logic.BitType;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.view.Views;
-
+import net.imglib2.algorithm.neighborhood.HyperSphereShape;
+import net.imglib2.algorithm.neighborhood.Shape;
 
 @Plugin(type = Command.class, menuPath = "Plugins>3D Droplets Stress")
 public class DropletsStress<T extends RealType<T>> implements Command {
@@ -52,15 +50,15 @@ public class DropletsStress<T extends RealType<T>> implements Command {
     @Override
     public void run() {
 
-        SwingUtilities.invokeLater(new Runnable() {
+        /*SwingUtilities.invokeLater(new Runnable() {
             @Override
             public void run() {
                 // Passez opService comme argument au constructeur de DropletsStressGUI
                 new DropletsStressGUI(opService).setVisible(true);
             }
-        });
+        });*/
 
-        /*uiService.showUI();
+        uiService.showUI();
 
 		// ask the user for a file to open
 		File file = uiService.chooseFile(null, "FileWidget.OPEN_STYLE");
@@ -81,12 +79,11 @@ public class DropletsStress<T extends RealType<T>> implements Command {
 		final Img<T> image_ini = (Img<T>) dataset.getImgPlus();
 		uiService.show("initial image", image_ini);
 
-		RandomAccessibleInterval<T> source = (RandomAccessibleInterval<T>) image_ini;
 		int radius = 3;
-		MedianFilter2D medianFilter = new MedianFilter2D(source, radius);
-		medianFilter.process();
-		final Img<T> dec = medianFilter.getResult();
-		//uiService.show("median filtered image", dec);
+		Shape shape = new HyperSphereShape(radius);
+		Img<T> dec = image_ini.copy();
+		opService.filter().median(dec, image_ini, shape);
+		uiService.show("median filtered image", dec);
 
 		RandomAccessibleInterval<T> edge = opService.filter().sobel(dec);
 		//uiService.show("3D sobel edges filtered image", edge);
@@ -95,7 +92,7 @@ public class DropletsStress<T extends RealType<T>> implements Command {
         int iterations_PSF = 10;
         int smoothing_sigma = 1;
         int n_smoothing_iterations = 10;
-        double resampling_length = 2.5;
+        double resampling_length = 1.5;
         int n_tracing_iterations = 10;
         int trace_length = 12;
         double outlier_tolerance = 0.5;
@@ -105,8 +102,6 @@ public class DropletsStress<T extends RealType<T>> implements Command {
         ImagePlus tmp = ImageJFunctions.wrap(dec, null);
         ProcessImage.initializeTargetScalingFactor(tmp);
         RandomAccessibleInterval<T> rescaled_image = ProcessImage.rescaleImage(edge, ProcessImage.scalingFactor);
-        double[] scalingFactors = new double[]{1.5, 1.0, 1.0};
-        //RandomAccessibleInterval<T> rescaled_image = ProcessImage.rescaleImage(edge, scalingFactors);
 		uiService.show("rescaled image", rescaled_image);
 
 		// It is sometimes necessary to blurr the image if it's still too noisy
@@ -128,7 +123,11 @@ public class DropletsStress<T extends RealType<T>> implements Command {
 		}
 
 		List<Point3f> resampled_points = ResamplePointCloud.resamplePointCloud(points, resampling_length);
-
+		for (int i = 0; i<n_tracing_iterations; i++)
+		    resampled_points = ResamplePointCloud.resamplePointCloud(resampled_points, resampling_length);
+		
+        System.out.println("Taille finale du nuage de points : " + resampled_points.size());
+      
 		// Affichage
 		// https://github.com/bene51/3DViewer_Examples/blob/master/src/main/java/examples/Plot_Points.java
 		CustomPointMesh cm = new CustomPointMesh(resampled_points);
@@ -143,12 +142,16 @@ public class DropletsStress<T extends RealType<T>> implements Command {
 		univ.addCustomMesh(cm, name);
 
 		cm.setPointSize(1);
-		cm.setColor(new Color3f(255,255,255));*/
+		cm.setColor(new Color3f(255,255,255));
+		
+		// Curvature
+
 
     }
 
     public static void main(final String... args) throws Exception {
         // create the ImageJ application context with all available services
+
         final ImageJ ij = new ImageJ();
 
         // invoke the plugin

@@ -2,9 +2,12 @@ package com.mycompany.imagej;
 
 import ij.ImagePlus;
 import ij.measure.Calibration;
+import io.scif.img.ImgIOException;
+import io.scif.img.ImgSaver;
 import net.imglib2.RandomAccessible;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.RealRandomAccessible;
+import net.imglib2.img.Img;
 import net.imglib2.interpolation.randomaccess.NearestNeighborInterpolatorFactory;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.realtransform.RealViews;
@@ -18,6 +21,18 @@ public class ProcessImage {
     public static double targetVoxelSize;
     public static double[] scalingFactor;
 
+    
+    public static <T> void saveAsTiff(Img<T> img, String filePath) {
+        ImgSaver imgSaver = new ImgSaver();
+
+        try {
+            imgSaver.saveImg(filePath, img);
+            System.out.println("Image saved successfully as TIFF: " + filePath);
+        } catch (ImgIOException e) {
+            e.printStackTrace();
+        }
+    }
+    
     public static void initializeTargetScalingFactor(ImagePlus image) {
         Calibration cal = image.getCalibration();
         double z;
