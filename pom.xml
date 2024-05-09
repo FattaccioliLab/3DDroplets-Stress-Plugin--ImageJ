@@ -153,6 +153,12 @@
 			<artifactId>vecmath</artifactId>
 		</dependency>
 		
+		<dependency>
+		  <groupId>com.github.wendykierp</groupId>
+		  <artifactId>JTransforms</artifactId>
+		  <version>3.1</version>
+		</dependency>
+			
 	</dependencies>
 
 </project>

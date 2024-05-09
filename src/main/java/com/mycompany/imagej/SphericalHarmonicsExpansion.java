@@ -1,25 +1,31 @@
 package com.mycompany.imagej;
 
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 import org.apache.commons.math3.linear.*;
 import org.apache.commons.math3.complex.Complex;
 import org.scijava.vecmath.Point3f;
 
+import ij.ImagePlus;
+import ij.io.FileSaver;
+
 public class SphericalHarmonicsExpansion {
     private SphericalHarmonicsFunction xFitSph, yFitSph, zFitSph;
     private EllipsoidExpander ellipsoidExpander;
     private int maxDegree;
-    private ArrayList<Point3f> points;
+    private List<Point3f> points;
 
-    public SphericalHarmonicsExpansion(ArrayList<Point3f> points, int maxDegree) {
+    public SphericalHarmonicsExpansion(List<Point3f> points, int maxDegree) {
         this.points = points;
         this.maxDegree = maxDegree;
         this.ellipsoidExpander = new EllipsoidExpander();
     }
 
-    public double[][] expand() {
+    public List<Point3f> expand() {
         ellipsoidExpander.fit(points);
         double[][] ellipticalCoordinates = ellipsoidExpander.cartesianToElliptical(points, true);
 
@@ -44,16 +50,18 @@ public class SphericalHarmonicsExpansion {
         zFitSph = new SphericalHarmonicsFunction(coefficientsZ, maxDegree);
 
         // evaluate spherical harmonics functions
-        double[][] fittedPoints = new double[points.size()][3];
+        List<Point3f> fittedPoints = new ArrayList<Point3f>();
         for (int i = 0; i < points.size(); i++) {
             double theta = ellipticalCoordinates[i][0];
             double phi = ellipticalCoordinates[i][1];
-            fittedPoints[i][0] = xFitSph.eval(theta, phi);
-            fittedPoints[i][1] = yFitSph.eval(theta, phi);
-            fittedPoints[i][2] = zFitSph.eval(theta, phi);
+            double x = xFitSph.eval(theta, phi);
+            double y = yFitSph.eval(theta, phi);
+            double z = zFitSph.eval(theta, phi);
+            Point3f point = new Point3f((float)x, (float)y, (float)z);
+            fittedPoints.add(point);
         }
 
-        return fittedPoints;
+        return ellipsoidExpander.ellipticalToCartesian(fittedPoints, true);
     }
 
 
@@ -101,6 +109,35 @@ public class SphericalHarmonicsExpansion {
         return coefMatrix;
     }
     
+    
+    public static void printPoints3D(List<Point3f> points3D) {
+        System.out.println("Points 3D :");
+        for (Point3f point : points3D) {
+            System.out.println("(" + point.getX() + ", " + point.getY() + ", " + point.getZ() + ")");
+        }
+    }
+
+    public static void writePointsToCSV(String filename, List<Point3f> points3D) {
+        String csvFilename = "./" +filename + ".cvs";
+        try (FileWriter writer = new FileWriter(csvFilename)) {
+            for (Point3f point : points3D) {
+                StringBuilder sb = new StringBuilder();
+                sb.append(point.getX()).append(",");
+                sb.append(point.getY()).append(",");
+                sb.append(point.getZ()).append("\n");
+                writer.write(sb.toString());
+            }
+//            FileSaver fileSaver = new FileSaver(new ImagePlus(csvFilename)); // Create FileSaver with ImagePlus
+//            fileSaver.saveAsText(); // Save as CSV
+            System.out.println("Les points ont été écrits dans le fichier " + csvFilename + " avec succès !");
+        } catch (IOException e) {
+            System.err.println("Erreur lors de l'écriture dans le fichier " + csvFilename + " : " + e.getMessage());
+        }
+    }
+    
+    
+    /* -----------------------------------------------------------------------*/
+    
     public static void testInitialization() { //test for Empty array
         ArrayList<Point3f> points = new ArrayList<>();
         int maxDegree = 5;
@@ -135,10 +172,10 @@ public class SphericalHarmonicsExpansion {
         ArrayList<Point3f> points = EllipsoidExpander.generateEllipsoidPoints(1.0, 1.0, 1.0, 100); // Simple sphere
         SphericalHarmonicsExpansion she = new SphericalHarmonicsExpansion(points, 5);
 
-        double[][] results = she.expand();
+        List<Point3f> results = she.expand();
         System.out.println("Complete Expansion Test:");
-        for (double[] result : results) {
-            System.out.println("Fitted Point: X=" + result[0] + " Y=" + result[1] + " Z=" + result[2]);
+        for (Point3f result : results) {
+            System.out.println("Fitted Point: X=" + result.getX() + " Y=" + result.getY() + " Z=" + result.getZ());
         }
     }
     

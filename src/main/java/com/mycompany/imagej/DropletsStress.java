@@ -5,6 +5,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.swing.SwingUtilities;
+
 import org.scijava.command.Command;
 import org.scijava.plugin.Parameter;
 import org.scijava.plugin.Plugin;
@@ -60,14 +62,14 @@ public class DropletsStress<T extends RealType<T>> implements Command {
 
         uiService.showUI();
 
-		// ask the user for a file to open
+		// Demander à l'utilisateur d'ouvrir un fichier
 		File file = uiService.chooseFile(null, "FileWidget.OPEN_STYLE");
 
 		if (file == null) {
 			return;
 		}
 
-		// load the dataset
+		// Charger le dataset
 		Dataset dataset;
 		try {
 			dataset = ij.scifio().datasetIO().open(file.getPath());
@@ -79,37 +81,39 @@ public class DropletsStress<T extends RealType<T>> implements Command {
 		final Img<T> image_ini = (Img<T>) dataset.getImgPlus();
 		uiService.show("initial image", image_ini);
 
-		int radius = 3;
+		// L'image donnée en entrée est celle avec le filtre médian déjà appliqué car c'est celle avec la bonne correction
+		/*int radius = 3;
 		Shape shape = new HyperSphereShape(radius);
 		Img<T> dec = image_ini.copy();
 		opService.filter().median(dec, image_ini, shape);
-		uiService.show("median filtered image", dec);
+		uiService.show("median filtered image", dec);*/
 
-		RandomAccessibleInterval<T> edge = opService.filter().sobel(dec);
+		// On ignore cette étape dans notre cas pour éviter une double couche 
+		//RandomAccessibleInterval<T> edge = opService.filter().sobel(image_ini);
 		//uiService.show("3D sobel edges filtered image", edge);
 
-		// Parameters for refinement
+		// Paramètres de raffinement
         int iterations_PSF = 10;
         int smoothing_sigma = 1;
         int n_smoothing_iterations = 10;
-        double resampling_length = 1.5;
+        double resampling_length = 2.5;
         int n_tracing_iterations = 10;
         int trace_length = 12;
         double outlier_tolerance = 0.5;
         boolean blurred = true;
 
 		// Rescale
-        ImagePlus tmp = ImageJFunctions.wrap(dec, null);
+        ImagePlus tmp = ImageJFunctions.wrap(image_ini, null);
         ProcessImage.initializeTargetScalingFactor(tmp);
-        RandomAccessibleInterval<T> rescaled_image = ProcessImage.rescaleImage(edge, ProcessImage.scalingFactor);
+        RandomAccessibleInterval<T> rescaled_image = ProcessImage.rescaleImage(image_ini, ProcessImage.scalingFactor);
 		uiService.show("rescaled image", rescaled_image);
 
-		// It is sometimes necessary to blurr the image if it's still too noisy
+		// Il est parfois nécessaire de flouter l'image si elle est encore trop bruyante
 		RandomAccessibleInterval<T> blurred_image = opService.filter().gauss(rescaled_image, smoothing_sigma);
-		//uiService.show("blurred image", blurred_image);
+		uiService.show("blurred image", blurred_image);
 
-		// Binarization and marching cube
-		// https://javadoc.scijava.org/ImageJ2/net/imagej/mesh/Mesh.html
+		
+		// Binarisation et marching cube
 		IterableInterval<T> iterableBlurredImage = Views.iterable(blurred_image);
 		IterableInterval<BitType> binarized_image = opService.threshold().otsu(iterableBlurredImage);
 		uiService.show("otsu", binarized_image);
@@ -121,31 +125,47 @@ public class DropletsStress<T extends RealType<T>> implements Command {
 		for(int i = 0; i < vertices.size(); i++) {
 		    points.add(new Point3f(vertices.xf(i), vertices.yf(i), vertices.zf(i)));
 		}
-
-		List<Point3f> resampled_points = ResamplePointCloud.resamplePointCloud(points, resampling_length);
-		for (int i = 0; i<n_tracing_iterations; i++)
-		    resampled_points = ResamplePointCloud.resamplePointCloud(resampled_points, resampling_length);
 		
+		// Affichage 3D du marching cubes
+		CustomPointMesh cm_marching_cubes = new CustomPointMesh(points);
+        Image3DUniverse univ1 = new Image3DUniverse();
+        univ1.showAttribute(Image3DUniverse.ATTRIBUTE_COORD_SYSTEM, true);
+        univ1.show();
+        univ1.addCustomMesh(cm_marching_cubes, "marching_cubes");
+        cm_marching_cubes.setPointSize(2);
+        cm_marching_cubes.setColor(new Color3f(255,255,255));
+
+        
+        // Nuage de points
+		List<Point3f> resampled_points = ResamplePointCloud.resamplePointCloud(points, resampling_length);
         System.out.println("Taille finale du nuage de points : " + resampled_points.size());
       
-		// Affichage
-		// https://github.com/bene51/3DViewer_Examples/blob/master/src/main/java/examples/Plot_Points.java
-		CustomPointMesh cm = new CustomPointMesh(resampled_points);
-
-		// Create a universe and show it
-		Image3DUniverse univ = new Image3DUniverse();
-		univ.showAttribute(Image3DUniverse.ATTRIBUTE_COORD_SYSTEM, true);
-		univ.show();
-
-		// Add the mesh
-		String name = "points";
-		univ.addCustomMesh(cm, name);
-
-		cm.setPointSize(1);
-		cm.setColor(new Color3f(255,255,255));
+		// Affichage 3D du nuage de points
+		CustomPointMesh cm_point_cloud = new CustomPointMesh(resampled_points);
+		Image3DUniverse univ2 = new Image3DUniverse();
+		univ2.showAttribute(Image3DUniverse.ATTRIBUTE_COORD_SYSTEM, true);
+		univ2.show();
+		univ2.addCustomMesh(cm_point_cloud, "resampled_points");
+		cm_point_cloud.setPointSize(2);
+		cm_point_cloud.setColor(new Color3f(255,255,255));
 		
-		// Curvature
-
+		
+		// Courbure
+		int max_degree = 5;
+        List<Point3f> fitted_points = new SphericalHarmonicsExpansion(resampled_points, max_degree).expand();
+        
+        SphericalHarmonicsExpansion.printPoints3D(fitted_points);
+        
+        // Affichage 3D des harmoniques sphériques
+        CustomPointMesh cm_spherical_harmonics = new CustomPointMesh(fitted_points);
+        Image3DUniverse univ3 = new Image3DUniverse();
+        univ3.showAttribute(Image3DUniverse.ATTRIBUTE_COORD_SYSTEM, true);
+        univ3.show();
+        univ3.addCustomMesh(cm_spherical_harmonics, "fitted_points");
+        cm_spherical_harmonics.setPointSize(3);
+        cm_spherical_harmonics.setColor(new Color3f(255,255,255));
+        
+        SphericalHarmonicsExpansion.writePointsToCSV("test", fitted_points);
 
     }
 

@@ -2,12 +2,9 @@ package com.mycompany.imagej;
 
 import ij.ImagePlus;
 import ij.measure.Calibration;
-import io.scif.img.ImgIOException;
-import io.scif.img.ImgSaver;
 import net.imglib2.RandomAccessible;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.RealRandomAccessible;
-import net.imglib2.img.Img;
 import net.imglib2.interpolation.randomaccess.NearestNeighborInterpolatorFactory;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.realtransform.RealViews;
@@ -16,54 +13,46 @@ import net.imglib2.util.Intervals;
 import net.imglib2.view.IntervalView;
 import net.imglib2.view.Views;
 
-
+/**
+ * Cette classe contient les méthodes pour le traitement des images.
+ */
 public class ProcessImage {
     public static double targetVoxelSize;
-    public static double[] scalingFactor;
+    public static double[] scalingFactor = new double[3];
 
-    
-    public static <T> void saveAsTiff(Img<T> img, String filePath) {
-        ImgSaver imgSaver = new ImgSaver();
-
-        try {
-            imgSaver.saveImg(filePath, img);
-            System.out.println("Image saved successfully as TIFF: " + filePath);
-        } catch (ImgIOException e) {
-            e.printStackTrace();
-        }
-    }
-    
+    /**
+     * Initialise les facteurs d'échelle pour chaque dimension de l'image
+     * en fonction de la taille du voxel dans chaque dimension par rapport à une taille cible.
+     * 
+     * @param image L'image à partir de laquelle les facteurs d'échelle seront calculés.
+     */
     public static void initializeTargetScalingFactor(ImagePlus image) {
+        
+        // Récupérer les informations de calibration de l'image
         Calibration cal = image.getCalibration();
-        double z;
-
-        // Tenter de récupérer 'spacing' comme la profondeur Z à partir des métadonnées de l'image
-        // Sinon, utiliser la profondeur de pixel de la calibration de l'image comme valeur par défaut
+        
+        double z; // Profondeur Z (taille du voxel en Z)
+        double x = cal.pixelWidth; // Largeur X (taille du voxel en X)
+        double y = cal.pixelHeight; // Hauteur Y (taille du voxel en Y)
+        
         if (cal != null && cal.pixelDepth > 0) {
-            z = cal.pixelDepth; // Utiliser la profondeur de pixel si disponible
+            z = cal.pixelDepth; // Récupérer la taille du voxel dans la dimension Z si disponible
         } else {
-            // Si 'spacing' n'est pas disponible et cal.pixelDepth n'est pas défini, utiliser 1.0 comme valeur par défaut
             z = 1.0;
         }
 
-        double y = cal.pixelHeight; // Hauteur Y (taille du voxel en Y)
-        double x = cal.pixelWidth; // Largeur X (taille du voxel en X)
-
-        // Assurez-vous que les valeurs sont significatives, sinon attribuez 1.0 par défaut
-        z = (z != 0 ? z : 1.0);
-        y = (y != 0 ? y : 1.0);
+        // On s'assure que les valeurs ne sont pas nulles (pour éviter une division par zéro)
         x = (x != 0 ? x : 1.0);
+        y = (y != 0 ? y : 1.0);
+        z = (z != 0 ? z : 1.0);
 
-        double voxelSize[] = new double[]{z, y, x};
-
-        // Définissez ici comment vous souhaitez déterminer le targetVoxelSize
-        double targetVoxelSize = y; // Par exemple, utiliser y ou une autre logique pour déterminer la taille cible
-        scalingFactor = new double[3];
-
-        // Calculer le facteur d'échelle pour chaque dimension
+        double voxelSize[] = new double[]{z, x, y};
+        double targetVoxelSize = x; // Taille cible du voxel
+        
+        // Calculer le tableau des facteurs d'échelle pour chaque dimension
         for (int i = 0; i < 3; i++) {
             scalingFactor[i] = voxelSize[i] / targetVoxelSize;
-            System.out.println("Scaling factor for dimension " + i + ": " + scalingFactor[i]);
+            System.out.println("Coefficient d'échelle pour la dimension " + i + ": " + scalingFactor[i]);
         }
     }
 
@@ -75,13 +64,22 @@ public class ProcessImage {
         return scalingFactor;
     }
 
+    /**
+     * Redimensionne une image avec les facteurs d'échelle spécifiés.
+     * @param image L'image à redimensionner.
+     * @param scalingFactors Les facteurs d'échelle pour chaque dimension de l'image (z, x, y).
+     * 
+     * @return L'image redimensionnée.
+     */
     public static <T extends RealType<T>> RandomAccessibleInterval<T> rescaleImage(RandomAccessibleInterval<T> image, double[] scalingFactors) {
+        // Créer une transformation affine avec les facteurs d'échelle spécifiés
         AffineTransform3D transform = new AffineTransform3D();
         double x = scalingFactors[1];
         double y = scalingFactors[2];
         double z = scalingFactors[0];
         transform.scale(x, y, z);
 
+        // Interpoler l'image avec la méthode du plus proche voisin
         RealRandomAccessible<T> interpolated = Views.interpolate(Views.extendBorder(image), new NearestNeighborInterpolatorFactory<>());
         RealRandomAccessible<T> transformed = RealViews.transform(interpolated, transform);
 
@@ -90,7 +88,7 @@ public class ProcessImage {
             return null;
         }
 
-        // Calculer les nouvelles dimensions
+        // Calculer les nouvelles dimensions de l'image
         long[] newDimensions = new long[3];
         newDimensions[0] = (long) (image.dimension(0) * x);
         newDimensions[1] = (long) (image.dimension(1) * y);

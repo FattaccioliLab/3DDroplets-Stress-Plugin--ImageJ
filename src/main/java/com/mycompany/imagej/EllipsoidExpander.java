@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Random;
 
 import org.apache.commons.math3.linear.Array2DRowRealMatrix;
+import org.apache.commons.math3.linear.ArrayRealVector;
 import org.apache.commons.math3.linear.MatrixUtils;
 import org.apache.commons.math3.linear.RealMatrix;
 import org.apache.commons.math3.linear.RealVector;
@@ -55,7 +56,7 @@ public class EllipsoidExpander {
 
     
 
-    public double[][] fit(ArrayList<Point3f> points) {
+    public double[][] fit(List<Point3f> points) {
         coefficients = fitEllipsoidToPoints(points);
         extractCharacteristics(coefficients);
         return generateOutput();
@@ -137,7 +138,7 @@ public class EllipsoidExpander {
         return points;
     }
     
-    public double[][] cartesianToElliptical(ArrayList<Point3f> points, boolean invert) {
+    public double[][] cartesianToElliptical(List<Point3f> points, boolean invert) {
         double[] lengths = new double[axes.length];
         for (int i = 0; i < axes.length; i++) {
             lengths[i] = Math.sqrt(axes[i]);
@@ -193,8 +194,37 @@ public class EllipsoidExpander {
         return results;
     }
 
+    public List<Point3f> ellipticalToCartesian(List<Point3f> ellipticalCoordinates, boolean invert) {
+        RealMatrix R = MatrixUtils.createRealMatrix(eigenvectors);
+        if (invert) {
+            R = R.transpose();
+        }
 
-    
+        RealMatrix R_inverse = new LUDecomposition(R).getSolver().getInverse();
+
+        List<Point3f> cartesianPoints = new ArrayList<>();
+
+        for (Point3f ellipticalPoint : ellipticalCoordinates) {
+            double u = ellipticalPoint.x;
+            double v = ellipticalPoint.y;
+
+            double uLength = Math.cos(u) * Math.sqrt(axes[0]);
+            double vLength = Math.sin(u) * Math.sqrt(axes[1]);
+
+            double x = uLength * Math.cos(v);
+            double y = uLength * Math.sin(v);
+            double z = vLength;
+
+            RealVector cartesianVector = R_inverse.operate(new ArrayRealVector(new double[] {x, y, z}));
+            cartesianVector = cartesianVector.add(new ArrayRealVector(center));
+
+            cartesianPoints.add(new Point3f((float) cartesianVector.getEntry(0), (float) cartesianVector.getEntry(1), (float) cartesianVector.getEntry(2)));
+        }
+
+        return cartesianPoints;
+    }
+
+
     
     public static void main(String[] args) {
     	

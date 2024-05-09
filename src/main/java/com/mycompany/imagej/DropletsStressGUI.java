@@ -1,8 +1,12 @@
 package com.mycompany.imagej;
 
 import ij.*;
+import ij.gui.*;
 import ij.io.OpenDialog;
+import ij.process.ByteProcessor;
+import ij3d.Content;
 import ij3d.Image3DUniverse;
+import net.imagej.ImgPlus;
 import net.imagej.mesh.Mesh;
 import net.imagej.mesh.Vertices;
 import net.imagej.ops.OpService;
@@ -13,6 +17,8 @@ import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.type.logic.BitType;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.view.Views;
+import com.mycompany.imagej.ProcessImage;
+
 import javax.swing.*;
 import javax.swing.border.EtchedBorder;
 import javax.swing.border.TitledBorder;
@@ -22,22 +28,23 @@ import javax.swing.event.ChangeListener;
 import org.scijava.vecmath.Color3f;
 import org.scijava.vecmath.Point3f;
 
+import customnode.CustomMesh;
 import customnode.CustomPointMesh;
 import fiji.plugin.trackmate.detection.util.MedianFilter2D;
 
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.List;
 
+@SuppressWarnings("deprecation")
 public class DropletsStressGUI extends JFrame {
-
-    private static final long serialVersionUID = 1L;
-
-    //private ImageProcessor processor;
-    private OpService opService;
-
+	
+	//private ImageProcessor processor;
+	private OpService opService;
+	
     private JPanel leftPanel;
     //---top left panel---//
     private JPanel topLeftPanel;
@@ -61,19 +68,19 @@ public class DropletsStressGUI extends JFrame {
     private JPanel marchingCubeImage;
     private JPanel pointCloudImage;
     private JButton finalizeButton;
-    private JProgressBar progressBar;
-
-
+    private static JProgressBar progressBar;
+    
+    
     // Créez un tableau de pixels pour votre image
     int width = 400/* largeur de votre image */;
     int height = 400 /* hauteur de votre image */;
-
+   
     public DropletsStressGUI(OpService opService) {
         setTitle("Droplets Stress Plugin");
         setSize(1000, 1000);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
-
+        
         this.opService = opService;
 
         // Create the left panel
@@ -86,9 +93,9 @@ public class DropletsStressGUI extends JFrame {
         originalImage.setPreferredSize(new Dimension(490, 250)); 
         originalImage.setBackground(Color.WHITE); 
         originalImage.setBorder(BorderFactory.createTitledBorder(BorderFactory.createEtchedBorder(EtchedBorder.LOWERED),
-                "Original Image", TitledBorder.CENTER, TitledBorder.TOP));
+				"Original Image", TitledBorder.CENTER, TitledBorder.TOP));
         topLeftPanel.add(originalImage);
-
+        
         // Create and add the "Select Image" button
         selectPhotoButton = new JButton("Select image");
         selectPhotoButton.setPreferredSize(new Dimension(490, 30));
@@ -104,8 +111,8 @@ public class DropletsStressGUI extends JFrame {
         bottomLeftPanel = new JPanel(new GridLayout(0, 1));
         bottomLeftPanel.setPreferredSize(new Dimension(500, 610)); 
         bottomLeftPanel.setBackground(Color.LIGHT_GRAY); 
-
-        medianRadiusField = new SpinnerNumberModel(3, 0, 99, 1); // Default value is "10"
+        
+    	medianRadiusField = new SpinnerNumberModel(3, 0, 99, 1); // Default value is "10"
         iterationsPSFField = new SpinnerNumberModel(10, 0, 99, 1); // Default value is "5"
         smoothingSigmaField = new SpinnerNumberModel(1, 0, 99, 1); // Default value is "2.0"
         nSmoothingIterationsField = new SpinnerNumberModel(10, 0, 99, 1); // Default value is "3"
@@ -114,7 +121,7 @@ public class DropletsStressGUI extends JFrame {
         traceLength = new SpinnerNumberModel(12, 0, 99, 1);
         outlierTolerance = new SpinnerNumberModel(0.5, 0, 99, 0.1);
 
-
+        
         // Add parameters
         bottomLeftPanel.setLayout(new GridLayout(9, 2)); 
         bottomLeftPanel.add(new JLabel("Median Radius: "));
@@ -140,8 +147,8 @@ public class DropletsStressGUI extends JFrame {
         previewButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                System.out.println("dans actionPerformed de preview button");
-                previewButtonActionPerformed(e);
+            	System.out.println("dans actionPerformed de preview button");
+            	previewButtonActionPerformed(e);
             }
         });
 
@@ -157,44 +164,48 @@ public class DropletsStressGUI extends JFrame {
         binarizedImage.setPreferredSize(new Dimension(490, 200)); 
         binarizedImage.setBackground(Color.WHITE); 
         binarizedImage.setBorder(BorderFactory.createTitledBorder(BorderFactory.createEtchedBorder(EtchedBorder.LOWERED),
-                "Image after surface binarization", TitledBorder.CENTER, TitledBorder.TOP));
+				"Image after surface binarization", TitledBorder.CENTER, TitledBorder.TOP));
         marchingCubeImage = new JPanel(new BorderLayout());
         marchingCubeImage.setPreferredSize(new Dimension(490, 200)); 
         marchingCubeImage.setBackground(Color.WHITE); 
         marchingCubeImage.setBorder(BorderFactory.createTitledBorder(BorderFactory.createEtchedBorder(EtchedBorder.LOWERED),
-                "Image after surface approximation", TitledBorder.CENTER, TitledBorder.TOP));
+				"Image after surface approximation", TitledBorder.CENTER, TitledBorder.TOP));
         pointCloudImage = new JPanel(new BorderLayout());
         pointCloudImage.setPreferredSize(new Dimension(490, 200)); 
         pointCloudImage.setBackground(Color.WHITE); 
         pointCloudImage.setBorder(BorderFactory.createTitledBorder(BorderFactory.createEtchedBorder(EtchedBorder.LOWERED),
-                "Image after surface refinement", TitledBorder.CENTER, TitledBorder.TOP));
+				"Image after surface refinement", TitledBorder.CENTER, TitledBorder.TOP));
         rightPanel.add(binarizedImage);
         rightPanel.add(marchingCubeImage);
         rightPanel.add(pointCloudImage);
-
+        
         // Create the progress bar
-        progressBar = new JProgressBar();
+        progressBar = new JProgressBar(0, 100);
+        progressBar.setValue(0);
         progressBar.setStringPainted(true); // Display progress text
         progressBar.setPreferredSize(new Dimension(490, 40)); 
 
         // Add the progress bar to the bottom of the left panel
         rightPanel.add(progressBar, BorderLayout.SOUTH);
-
+        
         //Finalize button
         finalizeButton = new JButton("Finalize");
         finalizeButton.setPreferredSize(new Dimension(490, 30));
         finalizeButton.addActionListener(new ActionListener() {
+
             @Override
             public void actionPerformed(ActionEvent e) {
-                System.out.println("finalized");
+            	System.out.println("dans actionPerformed de preview button");
+            	finalizeButtonActionPerformed(e);
             }
         });
+        
         rightPanel.add(finalizeButton);
 
         // Add panels to the frame
         add(leftPanel, BorderLayout.WEST);
         add(rightPanel, BorderLayout.CENTER);
-
+        
     }
 
     private void selectImage() {
@@ -202,16 +213,16 @@ public class DropletsStressGUI extends JFrame {
         String directory = openDialog.getDirectory();
         String fileName = openDialog.getFileName();
         if (directory != null && fileName != null) {
-            originalImagePlus = new ImagePlus(directory + fileName);
+        	originalImagePlus = new ImagePlus(directory + fileName);
             originalImage.add(getPreviewWindow(originalImagePlus)); // Add preview window with slice slider
             originalImage.validate();
             originalImage.repaint();
         }
     }
-
+    
     private <T extends RealType<T>> void processImage(ImagePlus imp) {
 
-        // Get parameters from GUI components
+    	// Get parameters from GUI components
         int medianRadius = (int) medianRadiusField.getValue();
         int iterationsPSF = (int) iterationsPSFField.getValue();
         int smoothingSigma = (int) smoothingSigmaField.getValue();
@@ -220,92 +231,145 @@ public class DropletsStressGUI extends JFrame {
         int n_tracing_iterations = (int) nTracingIterations.getValue() ;
         int trace_length = (int) traceLength.getValue();
         double outlier_tolerance = (double)outlierTolerance.getValue() ;
-
+        
+        setProgressBar(5);
+        
         RandomAccessibleInterval<T> source = (RandomAccessibleInterval<T>) ImageJFunctions.wrap(imp);
         MedianFilter2D medianFilter = new MedianFilter2D(source, medianRadius);
         medianFilter.process();
+        
         final Img<T> dec = medianFilter.getResult();
+        
+        setProgressBar(10);
 
         // Sobel edge detection
         RandomAccessibleInterval<T> edge = opService.filter().sobel(dec);
         double[] scalingFactors = new double[]{1.0, 1.0, 1.0};
+        
+        setProgressBar(15);
 
         // Rescale
         RandomAccessibleInterval<T> rescaled_image = ProcessImage.rescaleImage(edge, scalingFactors);
+        
+        setProgressBar(25);
 
         // Blurring the image
         RandomAccessibleInterval<T> blurred_image = opService.filter().gauss(rescaled_image, smoothingSigma);
-
+        
+        setProgressBar(30);
+        
         // Binarization
         IterableInterval<T> iterableBlurredImage = Views.iterable(blurred_image);
         IterableInterval<BitType> binarized_image = opService.threshold().otsu(iterableBlurredImage);
+        setProgressBar(35);
+        
         binarizedImage.removeAll();
         binarizedImage.add(getPreviewWindow(ImageJFunctions.wrap((RandomAccessibleInterval<T>) binarized_image, null)));
         binarizedImage.validate();
         binarizedImage.repaint();
-
+        
+        setProgressBar(40);
+        
         //Marching cube
         Mesh mesh = opService.geom().marchingCubes((RandomAccessibleInterval<T>) binarized_image, 1);
+        setProgressBar(45);
+        
         Vertices vertices = mesh.vertices();
-
-
+        
+        setProgressBar(50);
+     	
         // Create a CustomMesh from them
-        List<Point3f> custom_mesh = new ArrayList<Point3f>();
-        for(int i = 0; i < vertices.size(); i++) {
-            custom_mesh.add(new Point3f(vertices.xf(i), vertices.yf(i), vertices.zf(i)));
-        }
-
-        CustomPointMesh cm1 = new CustomPointMesh(custom_mesh);
-        cm1.setColor(new Color3f(255,255,255));
-
+     	List<Point3f> custom_mesh = new ArrayList<Point3f>();
+     	for(int i = 0; i < vertices.size(); i++) {
+     		custom_mesh.add(new Point3f(vertices.xf(i), vertices.yf(i), vertices.zf(i)));
+     	}
+     	setProgressBar(55);
+     	
+     	CustomPointMesh cm1 = new CustomPointMesh(custom_mesh);
+     	cm1.setColor(new Color3f(255,255,255));
+     	
         // Create a universe
-        Image3DUniverse univ1 = new Image3DUniverse();
-        univ1.showAttribute(Image3DUniverse.ATTRIBUTE_COORD_SYSTEM, true);
-
+     	Image3DUniverse univ1 = new Image3DUniverse();
+     	univ1.showAttribute(Image3DUniverse.ATTRIBUTE_COORD_SYSTEM, true);
+     	setProgressBar(60);
+        
         marchingCubeImage.removeAll();
         marchingCubeImage.add(univ1.getCanvas(), BorderLayout.CENTER);
         // Ajouter le CustomMesh au Image3DUniverse
-        univ1.addCustomMesh(cm1, "Mesh");
+     	univ1.addCustomMesh(cm1, "Mesh");
+     	setProgressBar(70);
+     	
         marchingCubeImage.validate();
         marchingCubeImage.repaint();
-
-        //Point Cloud 
+     	
+     	 //Point Cloud 
         List<Point3f> resampled_points = ResamplePointCloud.resamplePointCloud(custom_mesh, resampling_length);
-
-        CustomPointMesh cm2 = new CustomPointMesh(resampled_points);
-        cm2.setColor(new Color3f(255,255,255));
-
-        // Create a universe
-        Image3DUniverse univ2 = new Image3DUniverse();
-        univ2.showAttribute(Image3DUniverse.ATTRIBUTE_COORD_SYSTEM, true);
-
-        pointCloudImage.removeAll();
-        pointCloudImage.add(univ2.getCanvas(), BorderLayout.CENTER);
+        
+        setProgressBar(80);
+        
+     	CustomPointMesh cm2 = new CustomPointMesh(resampled_points);
+     	cm2.setColor(new Color3f(255,255,255));
+     	
+     	// Create a universe
+     	Image3DUniverse univ2 = new Image3DUniverse();
+     	univ2.showAttribute(Image3DUniverse.ATTRIBUTE_COORD_SYSTEM, true);
+     	setProgressBar(85);
+     	pointCloudImage.removeAll();
+     	pointCloudImage.add(univ2.getCanvas(), BorderLayout.CENTER);
+     	setProgressBar(90);
         // Ajouter le CustomMesh au Image3DUniverse
-        univ2.addCustomMesh(cm2, "Mesh");
-        pointCloudImage.validate();
-        pointCloudImage.repaint();
-
-
-
+     	univ2.addCustomMesh(cm2, "Mesh");
+     	setProgressBar(95);
+     	pointCloudImage.validate();
+     	pointCloudImage.repaint();  
+     	
+        setProgressBar(100);
+       
     }
-
-
+      
+    // ActionListener for the "Preview" button
+    private void finalizeButtonActionPerformed(ActionEvent evt) {
+    	System.out.println("dans previewButtonActionPerformed de preview button");
+    	progressBar.setValue(0);
+    	
+        // Perform finalize when the button is clicked
+    	// Créer une instance de SwingWorker
+		SwingWorker<Void, Void> worker = new SwingWorker<Void, Void>() {
+			@Override
+			protected Void doInBackground() throws Exception {
+		        try {
+					finaliser();
+				} catch (Throwable e) {
+					e.printStackTrace();
+				}
+				return null;
+			}
+		};
+		worker.execute();
+    }
+    
     // ActionListener for the "Preview" button
     private void previewButtonActionPerformed(ActionEvent evt) {
-        System.out.println("dans previewButtonActionPerformed de preview button");
+    	System.out.println("dans previewButtonActionPerformed de preview button");
+    	progressBar.setValue(0);
+    	
         // Perform image processing when the button is clicked
-
-        // Créez une instance de SwingWorker
-        ImageProcessingWorker worker = new ImageProcessingWorker();
-        // Exécutez le SwingWorker
-        worker.execute();
+    	// Créer une instance de SwingWorker
+		SwingWorker<Void, Void> worker = new SwingWorker<Void, Void>() {
+			@Override
+			protected Void doInBackground() throws Exception {
+		        // Effectuez l'étape de traitement
+		        processImage(originalImagePlus);
+				return null;
+			}
+		};
+		worker.execute();
     }
 
     protected static JPanel getPreviewWindow(ImagePlus imp) {
-
+    	
         if (imp != null) {
-            System.out.println("dans getPreviewWindow de preview button");
+        	System.out.println("dans getPreviewWindow de preview button");
             ImagePlusPanel panel = new ImagePlusPanel(imp);
             panel.setPreferredSize(new Dimension(400, 400));
 
@@ -346,101 +410,74 @@ public class DropletsStressGUI extends JFrame {
         }
         return null;
     }
-
-    //    public static void main(String[] args) {
-    //        SwingUtilities.invokeLater(new Runnable() {
-    //            @Override
-    //            public void run() {
-    //                new DropletsStressGUI(opService).setVisible(true);
-    //            }
-    //        });
-    //    }
-
-    public static class ImagePlusPanel extends JPanel {
-        private static final long serialVersionUID = 1L;
-        private ImagePlus imp;
-        private Image img;
-
-        /*-----------------------------------------------------------------------------------------------------------------------*/
-        /**
-         * ImagePlusPanel unique constructor.
-         * 
-         * @param imp images stack
-         */
-        public ImagePlusPanel(ImagePlus imp) {
-            this.imp = imp;
-            this.img = imp.getImage();
-            setPreferredSize(new Dimension(imp.getWidth(), imp.getHeight()));
-        }
-
-        /*-----------------------------------------------------------------------------------------------------------------------*/
-        /**
-         * Method that sets the images stack.
-         * 
-         * @param img images stack
-         */
-        public void setImage(Image img) {
-            this.img = img;
-            repaint();
-        }
-
-        /*-----------------------------------------------------------------------------------------------------------------------*/
-        /**
-         * Methods used to repaint slice.
-         */
-        @Override
-        protected void paintComponent(Graphics g) {
-            super.paintComponent(g);
-
-            double scale = Math.min((double) getWidth() / imp.getWidth(), (double) getHeight() / imp.getHeight());
-
-            int scaledWidth = (int) (imp.getWidth() * scale);
-            int scaledHeight = (int) (imp.getHeight() * scale);
-
-            int offsetX = (getWidth() - scaledWidth) / 2;
-            int offsetY = (getHeight() - scaledHeight) / 2;
-
-            g.drawImage(img, offsetX, offsetY, scaledWidth, scaledHeight, null);
+    
+    public void finaliser() {
+        // Fermer l'interface graphique
+        JFrame topLevelFrame = (JFrame) SwingUtilities.getWindowAncestor(finalizeButton);
+        if (topLevelFrame != null) {
+            topLevelFrame.dispose();
         }
     }
+    
+	public static void setProgressBar(int value) {
+		progressBar.setValue(value);
+	}
+    
 
-    // Classe interne pour le SwingWorker
-    private class ImageProcessingWorker extends SwingWorker<Void, Integer> {
+//    public static void main(String[] args) {
+//        SwingUtilities.invokeLater(new Runnable() {
+//            @Override
+//            public void run() {
+//                new DropletsStressGUI(opService).setVisible(true);
+//            }
+//        });
+//    }
+    
+	public static class ImagePlusPanel extends JPanel {
+		private static final long serialVersionUID = 1L;
+		private ImagePlus imp;
+		private Image img;
 
-        @Override
-        protected Void doInBackground() throws Exception {
+		/*-----------------------------------------------------------------------------------------------------------------------*/
+		/**
+		 * ImagePlusPanel unique constructor.
+		 * 
+		 * @param imp images stack
+		 */
+		public ImagePlusPanel(ImagePlus imp) {
+			this.imp = imp;
+			this.img = imp.getImage();
+			setPreferredSize(new Dimension(imp.getWidth(), imp.getHeight()));
+		}
 
-            // Simulate image processing progress
-            int totalProgress = 100;
-            int numSteps = 1; // Nombre d'étapes de traitement
-            int stepProgress = totalProgress / numSteps;
-            int step = 1;
+		/*-----------------------------------------------------------------------------------------------------------------------*/
+		/**
+		 * Method that sets the images stack.
+		 * 
+		 * @param img images stack
+		 */
+		public void setImage(Image img) {
+			this.img = img;
+			repaint();
+		}
 
-            // Effectuez chaque étape de traitement et publiez la progression
-            //for (int step = 1; step <= numSteps; step++) {
+		/*-----------------------------------------------------------------------------------------------------------------------*/
+		/**
+		 * Methods used to repaint slice.
+		 */
+		@Override
+		protected void paintComponent(Graphics g) {
+			super.paintComponent(g);
 
-            // Effectuez l'étape de traitement
-            processImage(originalImagePlus);
-            // Calculez et publiez la progression après chaque étape
-            int progress = step * stepProgress;
-            publish(progress);
+			double scale = Math.min((double) getWidth() / imp.getWidth(), (double) getHeight() / imp.getHeight());
 
-            //}
+			int scaledWidth = (int) (imp.getWidth() * scale);
+			int scaledHeight = (int) (imp.getHeight() * scale);
 
-            return null;
-        }
+			int offsetX = (getWidth() - scaledWidth) / 2;
+			int offsetY = (getHeight() - scaledHeight) / 2;
 
-        @Override
-        protected void process(List<Integer> chunks) {
-            // Mettre à jour la barre de progression
-            for (Integer progress : chunks) {
-                progressBar.setValue(progress);
-            }
-        }
-
-        @Override
-        protected void done() {
-            // Traitement terminé, effectuez les actions nécessaires ici
-        }
-    }
+			g.drawImage(img, offsetX, offsetY, scaledWidth, scaledHeight, null);
+		}
+	}
 }
