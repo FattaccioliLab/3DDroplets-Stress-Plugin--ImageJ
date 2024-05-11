@@ -10,8 +10,8 @@ import org.apache.commons.math3.linear.*;
 import org.apache.commons.math3.complex.Complex;
 import org.scijava.vecmath.Point3f;
 
-import ij.ImagePlus;
-import ij.io.FileSaver;
+import ij.io.SaveDialog;
+
 
 public class SphericalHarmonicsExpansion {
     private SphericalHarmonicsFunction xFitSph, yFitSph, zFitSph;
@@ -117,8 +117,18 @@ public class SphericalHarmonicsExpansion {
         }
     }
 
-    public static void writePointsToCSV(String filename, List<Point3f> points3D) {
-        String csvFilename = "./" +filename + ".cvs";
+
+    public static void writePointsToCSV(List<Point3f> points3D) {
+        SaveDialog sd = new SaveDialog("Enregistrer en tant que CSV", "points3D", ".csv");
+        String directory = sd.getDirectory();
+        String fileName = sd.getFileName();
+        
+        if (fileName == null) {
+            System.out.println("Sauvegarde annulée");
+            return; // L'utilisateur a annulé la boîte de dialogue
+        }
+
+        String csvFilename = directory + fileName;
         try (FileWriter writer = new FileWriter(csvFilename)) {
             for (Point3f point : points3D) {
                 StringBuilder sb = new StringBuilder();
@@ -127,13 +137,12 @@ public class SphericalHarmonicsExpansion {
                 sb.append(point.getZ()).append("\n");
                 writer.write(sb.toString());
             }
-//            FileSaver fileSaver = new FileSaver(new ImagePlus(csvFilename)); // Create FileSaver with ImagePlus
-//            fileSaver.saveAsText(); // Save as CSV
             System.out.println("Les points ont été écrits dans le fichier " + csvFilename + " avec succès !");
         } catch (IOException e) {
             System.err.println("Erreur lors de l'écriture dans le fichier " + csvFilename + " : " + e.getMessage());
         }
     }
+
     
     
     /* -----------------------------------------------------------------------*/

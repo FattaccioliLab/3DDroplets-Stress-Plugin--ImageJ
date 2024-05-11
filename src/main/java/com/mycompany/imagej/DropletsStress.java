@@ -165,7 +165,7 @@ public class DropletsStress<T extends RealType<T>> implements Command {
         cm_spherical_harmonics.setPointSize(3);
         cm_spherical_harmonics.setColor(new Color3f(255,255,255));
         
-        SphericalHarmonicsExpansion.writePointsToCSV("test", fitted_points);
+        SphericalHarmonicsExpansion.writePointsToCSV(fitted_points);
 
     }
 
