@@ -71,7 +71,8 @@ public class ProcessImage {
      * 
      * @return L'image redimensionnée.
      */
-    public static <T extends RealType<T>> RandomAccessibleInterval<T> rescaleImage(RandomAccessibleInterval<T> image, double[] scalingFactors) {
+    @SuppressWarnings("unchecked")
+	public static <T extends RealType<T>> RandomAccessibleInterval<T> rescaleImage(RandomAccessibleInterval<T> image, double[] scalingFactors) {
         // Créer une transformation affine avec les facteurs d'échelle spécifiés
         AffineTransform3D transform = new AffineTransform3D();
         double x = scalingFactors[1];

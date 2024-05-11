@@ -3,11 +3,17 @@ package com.mycompany.imagej;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
-import org.apache.commons.math3.linear.*;
+import javax.swing.JTextArea;
+
 import org.apache.commons.math3.complex.Complex;
+import org.apache.commons.math3.linear.Array2DRowRealMatrix;
+import org.apache.commons.math3.linear.ArrayRealVector;
+import org.apache.commons.math3.linear.DecompositionSolver;
+import org.apache.commons.math3.linear.QRDecomposition;
+import org.apache.commons.math3.linear.RealMatrix;
+import org.apache.commons.math3.linear.RealVector;
 import org.scijava.vecmath.Point3f;
 
 import ij.io.SaveDialog;
@@ -110,90 +116,45 @@ public class SphericalHarmonicsExpansion {
     }
     
     
-    public static void printPoints3D(List<Point3f> points3D) {
+    public static void printPoints3D1(List<Point3f> points3D) {
         System.out.println("Points 3D :");
         for (Point3f point : points3D) {
             System.out.println("(" + point.getX() + ", " + point.getY() + ", " + point.getZ() + ")");
         }
     }
-
-
-    public static void writePointsToCSV(List<Point3f> points3D) {
+    
+    public static void printPoints3D2(List<Point3f> points3D, JTextArea textArea) {
+        textArea.setText("Points 3D :\n");
+        for (Point3f point : points3D) {
+            textArea.append("(" + point.getX() + ", " + point.getY() + ", " + point.getZ() + ")\n");
+        }
+    }
+    
+    public static void writePointsToCSV(List<Point3f> fittedPoints, List<Point3f> resampledPoints) {
+    	
         SaveDialog sd = new SaveDialog("Enregistrer en tant que CSV", "points3D", ".csv");
         String directory = sd.getDirectory();
         String fileName = sd.getFileName();
-        
+
         if (fileName == null) {
             System.out.println("Sauvegarde annulée");
             return; // L'utilisateur a annulé la boîte de dialogue
         }
 
+        writePointsToFile(fittedPoints, directory, fileName.replace(".csv", "_fitted.csv"));
+        writePointsToFile(resampledPoints, directory, fileName.replace(".csv", "_resampled.csv"));
+    }
+
+    private static void writePointsToFile(List<Point3f> points, String directory, String fileName) {
         String csvFilename = directory + fileName;
         try (FileWriter writer = new FileWriter(csvFilename)) {
-            for (Point3f point : points3D) {
-                StringBuilder sb = new StringBuilder();
-                sb.append(point.getX()).append(",");
-                sb.append(point.getY()).append(",");
-                sb.append(point.getZ()).append("\n");
-                writer.write(sb.toString());
+            for (Point3f point : points) {
+                writer.write(point.getX() + "," + point.getY() + "," + point.getZ() + "\n");
             }
             System.out.println("Les points ont été écrits dans le fichier " + csvFilename + " avec succès !");
         } catch (IOException e) {
             System.err.println("Erreur lors de l'écriture dans le fichier " + csvFilename + " : " + e.getMessage());
         }
-    }
-
-    
-    
-    /* -----------------------------------------------------------------------*/
-    
-    public static void testInitialization() { //test for Empty array
-        ArrayList<Point3f> points = new ArrayList<>();
-        int maxDegree = 5;
-
-        SphericalHarmonicsExpansion she = new SphericalHarmonicsExpansion(points, maxDegree);
-        System.out.println("Initialization test passed: " + (she != null));
-    }
-    
-    public static void testEllipsoidFitting() {
-        ArrayList<Point3f> points = EllipsoidExpander.generateEllipsoidPoints(1.0, 1.0, 1.0, 100); // Generate points for a unit sphere
-        SphericalHarmonicsExpansion she = new SphericalHarmonicsExpansion(points, 5);
-
-        double[][] fitted = she.ellipsoidExpander.fit(points);
-        System.out.println("Ellipsoid Fitting Test:");
-        System.out.println("Center: " + Arrays.toString(she.ellipsoidExpander.getCenter()));
-        System.out.println("Axes: " + Arrays.toString(she.ellipsoidExpander.getAxes()));
-    }
-    
-    public static void testConversionToElliptical() {
-        ArrayList<Point3f> points = EllipsoidExpander.generateEllipsoidPoints(1.0, 1.0, 1.0, 100); // Use a unit sphere for simplicity
-        SphericalHarmonicsExpansion she = new SphericalHarmonicsExpansion(points, 5);
-        she.ellipsoidExpander.fit(points);
-
-        double[][] elliptical = she.ellipsoidExpander.cartesianToElliptical(points, true);
-        System.out.println("Conversion to Elliptical Coordinates Test:");
-        for (double[] coords : elliptical) {
-            System.out.println("U: " + coords[0] + ", V: " + coords[1]);
-        }
-    }
-    
-    public static void testCompleteExpansion() {
-        ArrayList<Point3f> points = EllipsoidExpander.generateEllipsoidPoints(1.0, 1.0, 1.0, 100); // Simple sphere
-        SphericalHarmonicsExpansion she = new SphericalHarmonicsExpansion(points, 5);
-
-        List<Point3f> results = she.expand();
-        System.out.println("Complete Expansion Test:");
-        for (Point3f result : results) {
-            System.out.println("Fitted Point: X=" + result.getX() + " Y=" + result.getY() + " Z=" + result.getZ());
-        }
-    }
-    
-    
-    public static void main(String[] args) {
-        testInitialization();
-        testEllipsoidFitting();
-        testConversionToElliptical();
-        testCompleteExpansion();
     }
 
 }
