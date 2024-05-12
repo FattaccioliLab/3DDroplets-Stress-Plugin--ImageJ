@@ -12,20 +12,19 @@
 		<relativePath />
 	</parent>
 
-	<groupId>com.mycompany</groupId>        <!-- FIXME: Your organization groupId here -->
-	<artifactId>3DDropletsStress</artifactId> <!-- FIXME: Your project artifactId here   -->
+	<groupId>com.mycompany</groupId>
+	<artifactId>3DDropletsStress</artifactId>
 	<version>0.1.0-SNAPSHOT</version>
 
-	<name>3D Droplets Stress</name>                                               <!-- FIXME: Your project name here          -->
-	<description>A Maven project implementing an ImageJ command.</description> <!-- FIXME: Your project description here   -->
-	<url>https://mycompany.com/imagej/gauss-filtering/</url>                   <!-- FIXME: Your project website here       -->
-	<inceptionYear>2017</inceptionYear>                                        <!-- FIXME: Your project starting year here -->
+	<name>3D Droplets Stress</name>                                               
+	<description>A Maven project implementing an ImageJ command.</description> 
+	<url>https://github.com/FattaccioliLab/3DDroplets-Stress-Plugin--ImageJ/</url>                   
+	<inceptionYear>2024</inceptionYear>                                       
 	<organization>
-		<name>Cédiflo</name>           <!-- FIXME: Your organization name here    -->
-		<url>https://mycompany.com/</url> <!-- FIXME: Your organization website here -->
+		<name>Cédiflo</name>           
 	</organization>
 	<licenses>
-		<license>                         <!-- FIXME: Your license here -->
+		<license>                 
 			<name>CC0</name>
 			<url>https://creativecommons.org/publicdomain/zero/1.0/</url>
 			<distribution>repo</distribution>
@@ -33,11 +32,10 @@
 	</licenses>
 
 	<developers>
-		<!-- See https://imagej.net/Team -->
 		<developer>
-			<id>octocat</id>                                          <!-- FIXME: Your GitHub handle here -->
-			<name>Floria Lim</name>                            <!-- FIXME: Your name here          -->
-			<url>https://mycompany.com/people/noma-onomatopoeia</url> <!-- FIXME: Your website here       -->
+			<id>floria</id>                                     
+			<name>Floria Lim</name>                            
+			<url>https://github.com/Azerall</url>
 			<roles>
 				<role>founder</role>
 				<role>lead</role>
@@ -49,9 +47,9 @@
 			</roles>
 		</developer>
 		<developer>
-			<id>octocat</id>                                          <!-- FIXME: Your GitHub handle here -->
-			<name>Céline Fan</name>                            <!-- FIXME: Your name here          -->
-			<url>https://mycompany.com/people/noma-onomatopoeia</url> <!-- FIXME: Your website here       -->
+			<id>celine</id>                                    
+			<name>Céline Fan</name>                           
+			<url>https://github.com/celine-yes</url> 
 			<roles>
 				<role>founder</role>
 				<role>lead</role>
@@ -63,9 +61,9 @@
 			</roles>
 		</developer>
 		<developer>
-			<id>octocat</id>                                          <!-- FIXME: Your GitHub handle here -->
-			<name>Dilyara Babanazarova</name>                            <!-- FIXME: Your name here          -->
-			<url>https://mycompany.com/people/noma-onomatopoeia</url> <!-- FIXME: Your website here       -->
+			<id>dilyara</id>                                          
+			<name>Dilyara Babanazarova</name>                           
+			<url>https://github.com/DilyaraB</url> 
 			<roles>
 				<role>founder</role>
 				<role>lead</role>
@@ -105,10 +103,10 @@
 	</ciManagement>
 
 	<properties>
-		<package-name>com.mycompany.imagej</package-name>                   <!-- FIXME: Your project package prefix here -->
-		<main-class>com.mycompany.imagej.DropletsStress</main-class>        <!-- FIXME: Your project main class here, or delete for none -->
-		<license.licenseName>cc0</license.licenseName>                      <!-- FIXME: Your license-maven-plugin license code here -->
-		<license.copyrightOwners>My Company, Inc.</license.copyrightOwners> <!-- FIXME: Your organization legal entity name here -->
+		<package-name>com.mycompany.imagej</package-name>                   
+		<main-class>com.mycompany.imagej.DropletsStress</main-class>       
+		<license.licenseName>cc0</license.licenseName>                      
+		<license.copyrightOwners>My Company, Inc.</license.copyrightOwners> 
 	</properties>
 
 	<repositories>
@@ -152,13 +150,6 @@
 			<groupId>org.scijava</groupId>
 			<artifactId>vecmath</artifactId>
 		</dependency>
-		
-		<dependency>
-		  <groupId>com.github.wendykierp</groupId>
-		  <artifactId>JTransforms</artifactId>
-		  <version>3.1</version>
-		</dependency>
-			
 	</dependencies>
 
 </project>
