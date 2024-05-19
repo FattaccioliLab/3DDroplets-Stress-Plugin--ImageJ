@@ -43,7 +43,7 @@ public class ResamplePointCloud {
         // Echantillonnage des points sur la sphere unitaire selon le schema de Fibonacci
         List<Point3f> sampledPoints = fibonacciSampling(n);
 
-        // Interpolation des coordonnees cartesiennes
+        // Interpolation des coordonnees
         List<Point3f> interpolatedPoints = interpolateCoordinates(pointsSpherical, sampledPoints);
 
         return spher2cart(interpolatedPoints);
@@ -117,7 +117,7 @@ public class ResamplePointCloud {
     }
 
     /**
-     * echantillonne les points sur une sphere selon le schema de Fibonacci.
+     * Echantillonne les points sur une sphere selon le schema de Fibonacci.
      * 
      * @param numberOfPoints Le nombre de points a echantillonner.
      * @return Une liste de points echantillonnes sur la sphere.
@@ -142,7 +142,7 @@ public class ResamplePointCloud {
     }
     
     /**
-     * Interpole les coordonnees des points echantillonnes.
+     * Interpole les coordonnees des points pour correspondre aux points echantillones.
      * 
      * @param points Les coordonnees des points a interpoler.
      * @param sampledPoints Les points echantillonnes.
